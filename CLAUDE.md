@@ -363,3 +363,60 @@ sudo systemctl restart dev-portal
 **Почему так:** история проекта = git-коммиты + `docs/`. `state.md`
 отвечает «где мы», `changelog.md` — «что было», `decisions.md` — «почему».
 Этого достаточно, чтобы кто угодно подхватил проект с того места, где его оставили.
+
+## ЗАПУСК БИТРИКС24-ПРИЛОЖЕНИЙ НА ЭТОМ СЕРВЕРЕ
+
+### Что стоит на сервере
+
+- **ОС**: Ubuntu 24.04
+- **Веб-сервер**: Caddy v2 (не nginx!)
+  - Конфиг: `/etc/caddy/Caddyfile`
+  - Владелец конфига: root (нужен sudo для правки)
+  - Перезагрузка БЕЗ sudo: `/usr/bin/caddy reload --config /etc/caddy/Caddyfile`
+  - Проверка текущего конфига в памяти: `curl http://localhost:2019/config/`
+- **Node.js**: v20
+- **PM2**: менеджер процессов для Node.js-приложений (`pm2 list`, `pm2 logs <name>`)
+- **SSL**: Caddy получает сертификаты Let's Encrypt автоматически при добавлении нового домена в Caddyfile
+
+### Домен для Битрикс24-приложений
+
+`b24.blackboxbegin.space` — все Б24-приложения живут здесь, разделены по путям:
+- `/ap-simple-test/` → порт 3001
+- `/следующий-проект/` → порт 3002
+- и т.д.
+
+### Как добавить новый Б24-проект
+
+1. **Создать папку** (если нужны статические файлы без Node):
+       sudo mkdir -p /var/www/b24/<проект>
+       sudo chown deploy:deploy /var/www/b24/<проект>
+
+2. **Запустить Node-сервер через PM2** (для приложений с Express):
+       PORT=300X pm2 start /projects/<проект>/src/server.js --name <проект>
+       pm2 save
+
+3. **Добавить блок в `/etc/caddy/Caddyfile`** (sudo):
+       handle /<проект>* {
+           uri strip_prefix /<проект>
+           reverse_proxy localhost:300X
+       }
+
+4. **Перезагрузить Caddy** (без sudo):
+       /usr/bin/caddy reload --config /etc/caddy/Caddyfile
+
+### Занятые порты
+
+| Порт | Что |
+|------|-----|
+| 3000 | dev-portal |
+| 3001 | ap-simple-test |
+| 8080 | code-server (VS Code) |
+
+### Важные нюансы
+
+- Caddy запущен как пользователь `caddy`, файлы в `/home/deploy/` ему недоступны.
+  Статику держать в `/var/www/b24/` (владелец deploy, права 755).
+- `sudo systemctl reload caddy` может не применить новый конфиг — использовать
+  `/usr/bin/caddy reload --config /etc/caddy/Caddyfile` напрямую.
+- Bitrix24 открывает iframe через POST-запрос. Чистый статический файл-сервер
+  не работает — нужен Express, который отвечает на POST `/` тем же index.html.
