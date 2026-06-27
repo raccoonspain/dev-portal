@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev Portal</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Login screen -->
+  <div id="login-screen" class="screen hidden">
+    <div class="login-box">
+      <h1>Dev Portal</h1>
+      <p class="subtitle">vibe.blackboxbegin.space</p>
+      <input type="password" id="login-password" placeholder="Пароль" autofocus>
+      <button id="login-btn">Войти</button>
+      <div id="login-error" class="error hidden">Неверный пароль</div>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div id="main-layout" class="hidden">
+    <nav class="sidebar">
+      <div class="logo">Dev Portal</div>
+
+      <a href="#projects" class="nav-link" data-page="projects">
+        <span class="icon">&#128193;</span> Проекты
+      </a>
+      <a href="#templates" class="nav-link" data-page="templates">
+        <span class="icon">&#128196;</span> Шаблоны
+      </a>
+
+      <a href="#journal" class="nav-link" data-page="journal">
+        <span class="icon">&#128214;</span> Журнал
+      </a>
+
+      <!-- Chat nav + topic/chat tree -->
+      <div class="nav-chat-section">
+        <div class="nav-chat-header">
+          <a href="#chat" class="nav-link nav-link-chat" data-page="chat">
+            <span class="icon">&#129302;</span> Чат Claude
+          </a>
+          <button id="new-chat-btn" class="btn-new-chat" title="Новый чат">+</button>
+        </div>
+        <div id="chat-tree" class="chat-tree"></div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button id="logout-btn" class="btn-logout">Выйти</button>
+      </div>
+    </nav>
+
+    <main class="content">
+
+      <!-- Projects page -->
+      <section id="page-projects" class="page hidden">
+        <div class="page-header">
+          <h2>Проекты</h2>
+          <button id="new-project-btn" class="btn-primary">+ Новый проект</button>
+        </div>
+        <div id="projects-list"></div>
+      </section>
+
+      <!-- Templates page -->
+      <section id="page-templates" class="page hidden">
+        <div class="page-header">
+          <h2>Шаблоны</h2>
+        </div>
+        <div id="templates-list"></div>
+      </section>
+
+      <!-- Journal page -->
+      <section id="page-journal" class="page hidden">
+        <div class="page-header">
+          <h2>Журнал проекта</h2>
+        </div>
+        <div class="journal-layout">
+          <div class="journal-sidebar">
+            <div class="journal-project-label">Проект</div>
+            <select id="journal-project-select" class="journal-select"></select>
+            <div id="journal-has-docs" class="journal-docs-status hidden"></div>
+            <div class="journal-new-entry">
+              <div class="journal-entry-label">Новая запись в changelog</div>
+              <textarea id="journal-entry-input" class="journal-entry-textarea" rows="3" placeholder="Что сделано — одной строкой..."></textarea>
+              <button id="journal-entry-btn" class="btn-primary" style="width:100%">Добавить запись</button>
+            </div>
+          </div>
+          <div class="journal-main">
+            <div class="journal-tabs">
+              <button class="jtab active" data-tab="state">Состояние</button>
+              <button class="jtab" data-tab="changelog">История</button>
+              <button class="jtab" data-tab="decisions">Решения</button>
+              <button class="jtab" data-tab="handoff">Передача</button>
+            </div>
+            <div id="journal-content" class="journal-content">
+              <div class="empty-state">Выберите проект</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chat page -->
+      <section id="page-chat" class="page hidden">
+        <div class="chat-topbar">
+          <div class="chat-topbar-left">
+            <div id="chat-topic-text" class="chat-topic-badge"></div>
+            <div id="chat-name-text" class="chat-name-title">Выберите чат</div>
+          </div>
+          <div class="chat-topbar-actions">
+            <button id="chat-rename-name-btn" class="btn-icon hidden" title="Переименовать чат">&#9998;</button>
+            <button id="chat-rename-topic-btn" class="btn-icon hidden" title="Изменить тему">&#127991;</button>
+            <button id="chat-delete-btn" class="btn-danger-sm hidden" title="Удалить чат">&#128465;</button>
+          </div>
+        </div>
+        <div id="chat-messages" class="chat-messages hidden"></div>
+
+        <!-- Status bar -->
+        <div id="chat-status-bar" class="chat-status-bar hidden">
+          <span id="chat-status-spinner" class="status-spinner"></span>
+          <span id="chat-status-text" class="status-text"></span>
+          <span id="chat-status-timer" class="status-timer"></span>
+        </div>
+
+        <div class="chat-input-row hidden" id="chat-input-area">
+          <textarea id="chat-input" placeholder="Сообщение для Claude..." rows="3"></textarea>
+          <button id="chat-send-btn" class="btn-primary">Отправить</button>
+        </div>
+        <div id="chat-empty-state" class="chat-empty-state">
+          <p>Выберите чат из списка или создайте новый</p>
+          <button id="chat-empty-new-btn" class="btn-primary">+ Новый чат</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- File browser panel -->
+  <div id="file-browser" class="file-browser hidden">
+    <div class="fb-header">
+      <div class="fb-header-left">
+        <span id="fb-title" class="fb-title"></span>
+      </div>
+      <div class="fb-header-actions">
+        <button id="fb-vscode-btn" class="btn-icon" title="Открыть в VS Code">&#9000;</button>
+        <button id="fb-close-btn" class="btn-icon" title="Закрыть">&#10005;</button>
+      </div>
+    </div>
+    <div class="fb-body">
+      <div id="fb-tree" class="fb-tree"></div>
+      <div id="fb-content" class="fb-content">
+        <div class="fb-placeholder">Выберите файл для просмотра</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New project modal -->
+  <div id="modal-new-project" class="modal hidden">
+    <div class="modal-box">
+      <h3>Новый проект</h3>
+      <label>Название (латиница, цифры, - _)</label>
+      <input type="text" id="new-project-name" placeholder="my-bitrix24-app">
+      <label>Шаблон (необязательно)</label>
+      <select id="new-project-template">
+        <option value="">— без шаблона —</option>
+      </select>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn-secondary">Отмена</button>
+        <button id="modal-create" class="btn-primary">Создать</button>
+      </div>
+      <div id="modal-error" class="error hidden"></div>
+    </div>
+  </div>
+
+  <!-- Delete project modal -->
+  <div id="modal-delete" class="modal hidden">
+    <div class="modal-box">
+      <h3>Удалить проект?</h3>
+      <p id="modal-delete-name" class="delete-name"></p>
+      <p class="warning">Это действие необратимо.</p>
+      <div class="modal-actions">
+        <button id="modal-delete-cancel" class="btn-secondary">Отмена</button>
+        <button id="modal-delete-confirm" class="btn-danger">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New chat modal -->
+  <div id="modal-new-chat" class="modal hidden">
+    <div class="modal-box">
+      <h3>Новый чат</h3>
+      <label>Название чата</label>
+      <input type="text" id="new-chat-name" placeholder="Название чата" maxlength="100">
+      <label>Тема</label>
+      <div class="topic-combo">
+        <select id="new-chat-topic-select">
+          <option value="">— выбрать существующую —</option>
+        </select>
+        <span class="topic-combo-or">или</span>
+        <input type="text" id="new-chat-topic-input" placeholder="Новая тема">
+      </div>
+      <div class="modal-actions">
+        <button id="new-chat-cancel" class="btn-secondary">Отмена</button>
+        <button id="new-chat-confirm" class="btn-primary">Создать</button>
+      </div>
+      <div id="new-chat-error" class="error hidden"></div>
+    </div>
+  </div>
+
+  <!-- Rename chat name modal -->
+  <div id="modal-rename-name" class="modal hidden">
+    <div class="modal-box">
+      <h3>Название чата</h3>
+      <label>Введите название</label>
+      <input type="text" id="rename-name-input" placeholder="Название чата" maxlength="100">
+      <div class="modal-actions">
+        <button id="rename-name-cancel" class="btn-secondary">Отмена</button>
+        <button id="rename-name-confirm" class="btn-primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename topic modal -->
+  <div id="modal-rename-topic" class="modal hidden">
+    <div class="modal-box">
+      <h3>Тема чата</h3>
+      <label>Выбрать существующую тему</label>
+      <select id="rename-topic-select">
+        <option value="">— выбрать —</option>
+      </select>
+      <label>или ввести новую тему</label>
+      <input type="text" id="rename-topic-input" placeholder="Новая тема">
+      <div class="modal-actions">
+        <button id="rename-topic-cancel" class="btn-secondary">Отмена</button>
+        <button id="rename-topic-confirm" class="btn-primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="/js/app.js"></script>
+</body>
+</html>

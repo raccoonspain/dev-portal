@@ -1,0 +1,6 @@
+node_modules/
+data/
+.env
+portal.pid
+portal.log
+code-server.log
