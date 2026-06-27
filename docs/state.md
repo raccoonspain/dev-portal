@@ -10,7 +10,7 @@
 
 ## Где мы сейчас
 
-Портал полностью работает. Последние сессии — UI-улучшения сайдбара и информативность страницы проектов. Сервер управляется через systemd (`sudo systemctl start dev-portal`), но перезапуск через `systemctl restart` ненадёжен — старый node-процесс иногда остаётся висеть и блокирует порт. Обходной путь: `kill <pid> && sudo systemctl start dev-portal`.
+Портал полностью работает. Systemd-перезапуск починен: `sudo systemctl restart dev-portal` теперь надёжно убивает старый процесс и поднимает новый. Блокеров нет.
 
 ## Что реализовано
 
@@ -21,16 +21,15 @@
 - Файловый браузер: типы `project`, `template`, `portal`; дерево + просмотр файлов
 - Журнал проекта: выбор проекта, markdown-рендер 4 вкладок, добавление записей в changelog
 - Чат с Claude: SSE-стрим, история через `--resume`, сворачиваемые темы в сайдбаре
-- API `/api/portal/*` и `/api/projects/:name/journal` отдают CLAUDE.md из корня
+- **Systemd:** `Restart=always`, `KillMode=control-group`, `StartLimitIntervalSec=0`; server.js выходит с кодом 1 при EADDRINUSE
 
 ## Следующие шаги
 
 - [ ] Разобрать приоритетные фичи — что добавлять дальше
-- [ ] Починить надёжный перезапуск systemd (Restart=always или KillMode=control-group)
 
 ## Открытые вопросы / блокеры
 
-- `sudo systemctl restart dev-portal` иногда не убивает старый процесс → порт занят → новый падает с кодом 0 → systemd не перезапускает (Restart=on-failure). Обходной путь: убивать вручную.
+Нет.
 
 ## Карта проекта
 

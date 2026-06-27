@@ -497,4 +497,11 @@ function copyDir(src, dest) {
   }
 }
 
-app.listen(PORT, '127.0.0.1', () => console.log(`Portal running on http://127.0.0.1:${PORT}`));
+const server = app.listen(PORT, '127.0.0.1', () => console.log(`Portal running on http://127.0.0.1:${PORT}`));
+server.on('error', err => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} already in use — exiting`);
+    process.exit(1);
+  }
+  throw err;
+});
