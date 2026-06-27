@@ -14,6 +14,10 @@ let journalCurrentTab = 'state';
 let journalCurrentProject = null;
 let portalJournalData = null;
 let portalJournalTab = 'state';
+let projectDetailsData = null;
+let projectDetailsTab = 'claude';
+let projectDetailsName = null;
+let projectDetailsFullPath = null;
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
@@ -108,6 +112,7 @@ async function loadProjects() {
         <td class="td-desc">${esc(p.description || '')}</td>
         <td class="td-path"><code data-path="${esc(p.fullPath)}" title="Нажмите, чтобы скопировать">${esc(p.fullPath)}</code></td>
         <td class="td-actions">
+          <button class="btn-action btn-details" data-name="${esc(p.name)}" data-full-path="${esc(p.fullPath)}" title="Подробности">&#10067;</button>
           <button class="btn-action btn-browse" data-name="${esc(p.name)}" data-full-path="${esc(p.fullPath)}" title="Обзор файлов">&#128194;</button>
           <button class="btn-action btn-open" data-name="${esc(p.name)}" title="Открыть в VS Code">&#9000;</button>
           <button class="btn-action btn-download" data-name="${esc(p.name)}" title="Скачать ZIP">&#128229;</button>
@@ -119,6 +124,8 @@ async function loadProjects() {
     list.querySelectorAll('.td-path code').forEach(el => {
       el.addEventListener('click', () => copyToClipboard(el.dataset.path, el));
     });
+    list.querySelectorAll('.btn-details').forEach(b => b.addEventListener('click', () =>
+      openProjectDetails(b.dataset.name, b.dataset.fullPath)));
     list.querySelectorAll('.btn-browse').forEach(b => b.addEventListener('click', () =>
       openFileBrowser('project', b.dataset.name, b.dataset.fullPath)));
     list.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', () => openProject(b.dataset.name)));
@@ -130,6 +137,60 @@ async function loadProjects() {
 async function openProject(name) {
   return openInVSCode('project', name);
 }
+
+async function openProjectDetails(name, fullPath) {
+  projectDetailsName = name;
+  projectDetailsFullPath = fullPath;
+  document.getElementById('pd-title').textContent = `📁 ${name}`;
+  const pathEl = document.getElementById('pd-path');
+  pathEl.textContent = fullPath;
+  pathEl.dataset.path = fullPath;
+  document.querySelectorAll('.pdtab').forEach(b => b.classList.remove('active'));
+  document.querySelector('.pdtab[data-tab="claude"]').classList.add('active');
+  projectDetailsTab = 'claude';
+  projectDetailsData = null;
+  document.getElementById('pd-content').innerHTML = '<div class="empty-state">Загрузка...</div>';
+  document.getElementById('project-details').classList.remove('hidden');
+  try {
+    projectDetailsData = await api('GET', `/api/projects/${encodeURIComponent(name)}/journal`);
+    renderProjectDetailsTab(projectDetailsTab);
+  } catch (e) {
+    document.getElementById('pd-content').innerHTML = `<div class="empty-state">${esc(e.message)}</div>`;
+  }
+}
+
+function renderProjectDetailsTab(tab) {
+  const content = document.getElementById('pd-content');
+  if (!projectDetailsData) { content.innerHTML = '<div class="empty-state">Загрузка...</div>'; return; }
+  const file = JOURNAL_TAB_FILES[tab];
+  const text = projectDetailsData[file];
+  if (text == null) {
+    content.innerHTML = `<div class="md-empty">${file} не найден</div>`;
+  } else {
+    content.innerHTML = `<div class="md">${renderMarkdown(text)}</div>`;
+  }
+}
+
+document.getElementById('pd-close-btn').addEventListener('click', () => {
+  document.getElementById('project-details').classList.add('hidden');
+});
+document.getElementById('pd-path').addEventListener('click', e => {
+  copyToClipboard(e.currentTarget.dataset.path, e.currentTarget);
+});
+document.getElementById('pd-browse-btn').addEventListener('click', () => {
+  openFileBrowser('project', projectDetailsName, projectDetailsFullPath);
+});
+document.getElementById('pd-vscode-btn').addEventListener('click', () => {
+  openProject(projectDetailsName);
+});
+document.querySelectorAll('.pdtab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pdtab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    projectDetailsTab = btn.dataset.tab;
+    renderProjectDetailsTab(projectDetailsTab);
+  });
+});
 
 async function openInVSCode(type, name) {
   try {

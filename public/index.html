@@ -182,6 +182,30 @@
     </div>
   </div>
 
+  <!-- Project details panel -->
+  <div id="project-details" class="file-browser hidden">
+    <div class="fb-header">
+      <div class="fb-header-left">
+        <span id="pd-title" class="fb-title"></span>
+      </div>
+      <div class="fb-header-actions">
+        <button id="pd-close-btn" class="btn-icon" title="Закрыть">&#10005;</button>
+      </div>
+    </div>
+    <div class="pd-info-row">
+      <code id="pd-path" title="Нажмите, чтобы скопировать"></code>
+      <button id="pd-browse-btn" class="btn-action" title="Обзор файлов">&#128194;</button>
+      <button id="pd-vscode-btn" class="btn-action" title="Открыть в VS Code">&#9000;</button>
+    </div>
+    <div class="pd-tabs">
+      <button class="pdtab active" data-tab="claude">CLAUDE.md</button>
+      <button class="pdtab" data-tab="state">Состояние</button>
+      <button class="pdtab" data-tab="changelog">История</button>
+      <button class="pdtab" data-tab="decisions">Решения</button>
+    </div>
+    <div id="pd-content" class="pd-content"></div>
+  </div>
+
   <!-- New project modal -->
   <div id="modal-new-project" class="modal hidden">
     <div class="modal-box">

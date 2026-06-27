@@ -133,6 +133,8 @@ app.get('/api/projects/:name/journal', auth, (req, res) => {
     const p = path.join(docsDir, file);
     result[file] = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
   }
+  const claudeMd = path.join(folder, 'CLAUDE.md');
+  result['CLAUDE.md'] = fs.existsSync(claudeMd) ? fs.readFileSync(claudeMd, 'utf8') : null;
   res.json(result);
 });
 
