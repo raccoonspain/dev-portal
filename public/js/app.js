@@ -63,6 +63,10 @@ document.querySelectorAll('.nav-link').forEach(link => {
   link.addEventListener('click', e => { e.preventDefault(); navigate(link.dataset.page); });
 });
 
+document.getElementById('chat-tree-toggle').addEventListener('click', () => {
+  document.querySelector('.nav-chat-section').classList.toggle('open');
+});
+
 function navigate(page) {
   currentPage = page;
   document.querySelectorAll('.nav-link').forEach(l => {
@@ -78,6 +82,7 @@ function navigate(page) {
   if (page === 'journal') loadJournalPage();
   if (page === 'chat') {
     document.querySelector('.nav-link-chat')?.classList.add('active');
+    document.querySelector('.nav-chat-section').classList.add('open');
     updateChatView();
   }
 }
@@ -670,15 +675,15 @@ function renderPortalJournalTab(tab) {
   if (!portalJournalData) { content.innerHTML = '<div class="empty-state">Загрузка...</div>'; return; }
   const file = JOURNAL_TAB_FILES[tab];
   const text = portalJournalData[file];
-  if (text === null) {
-    content.innerHTML = `<div class="md-empty">${file} не найден в папке docs/</div>`;
+  if (text == null) {
+    content.innerHTML = `<div class="md-empty">${file} не найден</div>`;
   } else {
     content.innerHTML = `<div class="md">${renderMarkdown(text)}</div>`;
   }
 }
 
 // ── Journal ──
-const JOURNAL_TAB_FILES = { state: 'state.md', changelog: 'changelog.md', decisions: 'decisions.md', handoff: 'handoff.md' };
+const JOURNAL_TAB_FILES = { claude: 'CLAUDE.md', state: 'state.md', changelog: 'changelog.md', decisions: 'decisions.md', handoff: 'handoff.md' };
 const JOURNAL_TAB_LABELS = { state: 'Состояние', changelog: 'История', decisions: 'Решения', handoff: 'Передача' };
 
 async function loadJournalPage() {
@@ -740,7 +745,7 @@ function renderJournalTab(tab) {
   if (!journalData) { content.innerHTML = '<div class="empty-state">Выберите проект</div>'; return; }
   const file = JOURNAL_TAB_FILES[tab];
   const text = journalData[file];
-  if (text === null) {
+  if (text == null) {
     content.innerHTML = `<div class="md-empty">${file} не найден в папке docs/</div>`;
   } else {
     content.innerHTML = `<div class="md">${renderMarkdown(text)}</div>`;

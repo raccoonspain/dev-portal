@@ -49,8 +49,16 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .nav-link .icon { font-size: 15px; }
 
 /* ── Chat section in sidebar ── */
-.nav-chat-section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.nav-chat-section { display: flex; flex-direction: column; flex: 0 0 auto; min-height: 0; }
+.nav-chat-section.open { flex: 1; }
 .nav-chat-header { display: flex; align-items: center; }
+.nav-chat-arrow {
+  font-size: 9px; transition: transform 0.15s; flex-shrink: 0;
+  display: inline-block; color: var(--text-muted); padding: 0 4px 0 14px;
+  cursor: pointer; user-select: none;
+}
+.nav-chat-arrow:hover { color: var(--text); }
+.nav-chat-section.open .nav-chat-arrow { transform: rotate(90deg); }
 .nav-link-chat { flex: 1; }
 .btn-new-chat {
   background: transparent; border: none; color: var(--text-muted); font-size: 20px;
@@ -59,7 +67,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .btn-new-chat:hover { color: var(--accent); }
 
 /* ── Chat tree (topics + chats) ── */
-.chat-tree { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+.chat-tree { display: none; flex: 1; overflow-y: auto; padding-bottom: 8px; }
+.nav-chat-section.open .chat-tree { display: block; }
 
 .topic-group { border-bottom: 1px solid rgba(46,49,72,0.5); }
 
@@ -100,12 +109,16 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .chat-item-del:hover { color: var(--danger) !important; }
 
 /* ── Sidebar bottom ── */
-.sidebar-bottom { padding: 16px 20px; border-top: 1px solid var(--border); }
+.sidebar-bottom {
+  position: fixed; bottom: 0; left: 0; width: 240px; z-index: 10;
+  padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg2);
+}
 .btn-logout {
   width: 100%; background: transparent; border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text-muted); padding: 9px; font-size: 13px; cursor: pointer; transition: all 0.15s;
 }
 .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+.sidebar { padding-bottom: 56px; }
 
 /* ── Content ── */
 .content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; }
