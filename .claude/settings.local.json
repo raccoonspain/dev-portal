@@ -118,7 +118,8 @@
       "Bash(bash scripts/snapshot.sh \"решение: панель подробностей проекта \\(D-006\\)\")",
       "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён state.md — UI-улучшения и панель подробностей проектов\")",
       "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"починен перезапуск systemd\")",
-      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён CLAUDE.md — актуальная документация портала\")"
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён CLAUDE.md — актуальная документация портала\")",
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"handoff: снимок передачи на 2026-06-27\")"
     ]
   }
 }
