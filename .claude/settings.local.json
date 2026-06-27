@@ -96,7 +96,26 @@
       "Bash(curl -s http://127.0.0.1:3000/api/portal/journal)",
       "Bash(curl -s http://127.0.0.1:3000/api/portal/tree)",
       "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: dev-portal как закреплённый элемент навигации \\(D-005\\)\")",
-      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён state.md — актуальное состояние после D-005\")"
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён state.md — актуальное состояние после D-005\")",
+      "Read(//home/deploy/.config/code-server/**)",
+      "Read(//etc/caddy/**)",
+      "Read(//home/deploy/.npm-global/bin/**)",
+      "Bash(sqlite3 /home/deploy/dev-portal/data/portal.db \"SELECT COUNT\\(*\\) as chats FROM chats;\")",
+      "Bash(sqlite3 /home/deploy/dev-portal/data/portal.db \"SELECT COUNT\\(*\\) as messages FROM messages;\")",
+      "Bash(systemctl is-active *)",
+      "Bash(tar czf *)",
+      "Bash(tar tzf *)",
+      "Bash(chmod +x *)",
+      "Bash(sudo systemctl is-active dev-portal)",
+      "Bash(systemctl --user is-active dev-portal)",
+      "Bash(kill 72598)",
+      "Bash(git -C /home/deploy/dev-portal status)",
+      "Bash(git -C /home/deploy/dev-portal diff)",
+      "Bash(git *)",
+      "Bash(curl -s -b \"token=test\" http://127.0.0.1:3000/api/projects/ap-simple-test/journal)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('CLAUDE.md key:', 'CLAUDE.md' in d, '| value type:', type\\(d.get\\('CLAUDE.md'\\)\\).__name__, '| len:', len\\(d.get\\('CLAUDE.md'\\) or ''\\)\\)\")",
+      "Bash(kill 80460)",
+      "Bash(bash scripts/snapshot.sh \"решение: панель подробностей проекта \\(D-006\\)\")"
     ]
   }
 }
