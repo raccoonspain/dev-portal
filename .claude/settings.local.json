@@ -115,7 +115,8 @@
       "Bash(curl -s -b \"token=test\" http://127.0.0.1:3000/api/projects/ap-simple-test/journal)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('CLAUDE.md key:', 'CLAUDE.md' in d, '| value type:', type\\(d.get\\('CLAUDE.md'\\)\\).__name__, '| len:', len\\(d.get\\('CLAUDE.md'\\) or ''\\)\\)\")",
       "Bash(kill 80460)",
-      "Bash(bash scripts/snapshot.sh \"решение: панель подробностей проекта \\(D-006\\)\")"
+      "Bash(bash scripts/snapshot.sh \"решение: панель подробностей проекта \\(D-006\\)\")",
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён state.md — UI-улучшения и панель подробностей проектов\")"
     ]
   }
 }
