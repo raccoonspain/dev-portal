@@ -25,6 +25,9 @@
     <nav class="sidebar">
       <div class="logo">Dev Portal</div>
 
+      <a href="#portal" class="nav-link" data-page="portal">
+        <span class="icon">&#127344;</span> dev-portal
+      </a>
       <a href="#projects" class="nav-link" data-page="projects">
         <span class="icon">&#128193;</span> Проекты
       </a>
@@ -53,6 +56,28 @@
     </nav>
 
     <main class="content">
+
+      <!-- Dev Portal page -->
+      <section id="page-portal" class="page hidden">
+        <div class="page-header">
+          <h2>&#127344; dev-portal</h2>
+        </div>
+        <div class="portal-info-row">
+          <code id="portal-path" data-path="/home/deploy/dev-portal" title="Нажмите, чтобы скопировать">/home/deploy/dev-portal</code>
+          <button id="portal-browse-btn" class="btn-action" title="Обзор файлов">&#128194;</button>
+          <button id="portal-vscode-btn" class="btn-action" title="Открыть в VS Code">&#9000;</button>
+        </div>
+        <div class="portal-journal-section">
+          <div class="journal-tabs">
+            <button class="pjtab active" data-tab="state">Состояние</button>
+            <button class="pjtab" data-tab="changelog">История</button>
+            <button class="pjtab" data-tab="decisions">Решения</button>
+          </div>
+          <div id="portal-journal-content" class="journal-content">
+            <div class="empty-state">Загрузка...</div>
+          </div>
+        </div>
+      </section>
 
       <!-- Projects page -->
       <section id="page-projects" class="page hidden">

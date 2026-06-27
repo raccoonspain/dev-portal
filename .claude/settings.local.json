@@ -89,7 +89,13 @@
       "Bash(git init *)",
       "Bash(git config *)",
       "Bash(chmod +x /home/deploy/dev-portal/scripts/snapshot.sh)",
-      "Bash(bash scripts/snapshot.sh \"инициализация журнала: docs/, scripts/, git, обновлён CLAUDE.md\")"
+      "Bash(bash scripts/snapshot.sh \"инициализация журнала: docs/, scripts/, git, обновлён CLAUDE.md\")",
+      "Bash(git -C /home/deploy/dev-portal log --oneline -8)",
+      "Bash(kill -SIGHUP 68701)",
+      "Bash(kill 68701)",
+      "Bash(curl -s http://127.0.0.1:3000/api/portal/journal)",
+      "Bash(curl -s http://127.0.0.1:3000/api/portal/tree)",
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: dev-portal как закреплённый элемент навигации \\(D-005\\)\")"
     ]
   }
 }

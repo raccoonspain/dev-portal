@@ -11,6 +11,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROJECTS_DIR = process.env.PROJECTS_DIR || '/projects';
 const TEMPLATES_DIR = process.env.TEMPLATES_DIR || '/templates';
+const PORTAL_DIR = path.resolve(__dirname, '..');
+const PORTAL_TREE_IGNORE = new Set(['node_modules', '.git', 'data']);
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const PORTAL_PASSWORD = process.env.PORTAL_PASSWORD || 'changeme';
 const CODE_SERVER_URL = process.env.CODE_SERVER_URL || 'http://localhost:8080';
@@ -419,6 +421,38 @@ app.post('/api/chat', auth, (req, res) => {
   });
 });
 
+// --- Portal (dev-portal itself) ---
+app.get('/api/portal/open', auth, (req, res) => {
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+  res.json({ url: `${proto}://${host}/vscode/?folder=${PORTAL_DIR}` });
+});
+
+app.get('/api/portal/tree', auth, (req, res) => {
+  res.json(buildFileTree(PORTAL_DIR, PORTAL_DIR, PORTAL_TREE_IGNORE));
+});
+
+app.get('/api/portal/file', auth, (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath) return res.status(400).json({ error: 'Path required' });
+  const base = path.resolve(PORTAL_DIR);
+  const resolved = path.resolve(base, filePath);
+  if (!resolved.startsWith(base + path.sep) && resolved !== base) return res.status(403).json({ error: 'Forbidden' });
+  if (!fs.existsSync(resolved) || fs.statSync(resolved).isDirectory()) return res.status(404).json({ error: 'Not found' });
+  try { res.json({ content: fs.readFileSync(resolved, 'utf8') }); }
+  catch { res.json({ content: '[Бинарный файл — просмотр недоступен]' }); }
+});
+
+app.get('/api/portal/journal', auth, (req, res) => {
+  const docsDir = path.join(PORTAL_DIR, 'docs');
+  const result = {};
+  for (const file of JOURNAL_FILES) {
+    const p = path.join(docsDir, file);
+    result[file] = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+  }
+  res.json(result);
+});
+
 // --- SPA fallback ---
 app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
@@ -428,16 +462,17 @@ function ensureDir(p) {
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
 
-function buildFileTree(dir, baseDir) {
+function buildFileTree(dir, baseDir, ignore = new Set()) {
   let entries;
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
   catch { return []; }
   const result = [];
   for (const entry of entries) {
+    if (ignore.has(entry.name)) continue;
     const fullPath = path.join(dir, entry.name);
     const relPath = path.relative(baseDir, fullPath);
     if (entry.isDirectory()) {
-      result.push({ name: entry.name, path: relPath, type: 'dir', children: buildFileTree(fullPath, baseDir) });
+      result.push({ name: entry.name, path: relPath, type: 'dir', children: buildFileTree(fullPath, baseDir, ignore) });
     } else {
       result.push({ name: entry.name, path: relPath, type: 'file' });
     }

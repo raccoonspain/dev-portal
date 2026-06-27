@@ -12,6 +12,8 @@ let fbContext = null;
 let journalData = null;
 let journalCurrentTab = 'state';
 let journalCurrentProject = null;
+let portalJournalData = null;
+let portalJournalTab = 'state';
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
@@ -70,6 +72,7 @@ function navigate(page) {
   document.querySelectorAll('.page').forEach(p => { p.classList.add('hidden'); p.classList.remove('active'); });
   const el = document.getElementById(`page-${page}`);
   if (el) { el.classList.remove('hidden'); el.classList.add('active'); }
+  if (page === 'portal') loadPortalPage();
   if (page === 'projects') loadProjects();
   if (page === 'templates') loadTemplates();
   if (page === 'journal') loadJournalPage();
@@ -626,6 +629,54 @@ function scrollChat() {
   msgs.scrollTop = msgs.scrollHeight;
 }
 
+// ── Portal page ──
+document.getElementById('portal-path').addEventListener('click', e => {
+  copyToClipboard(e.currentTarget.dataset.path, e.currentTarget);
+});
+
+document.getElementById('portal-browse-btn').addEventListener('click', () => {
+  openFileBrowser('portal', 'dev-portal', '/home/deploy/dev-portal');
+});
+
+document.getElementById('portal-vscode-btn').addEventListener('click', async () => {
+  try {
+    const { url } = await api('GET', '/api/portal/open');
+    window.open(url, '_blank');
+  } catch (e) { alert('Ошибка: ' + e.message); }
+});
+
+document.querySelectorAll('.pjtab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pjtab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    portalJournalTab = btn.dataset.tab;
+    renderPortalJournalTab(portalJournalTab);
+  });
+});
+
+async function loadPortalPage() {
+  const content = document.getElementById('portal-journal-content');
+  content.innerHTML = '<div class="empty-state">Загрузка...</div>';
+  try {
+    portalJournalData = await api('GET', '/api/portal/journal');
+    renderPortalJournalTab(portalJournalTab);
+  } catch (e) {
+    content.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`;
+  }
+}
+
+function renderPortalJournalTab(tab) {
+  const content = document.getElementById('portal-journal-content');
+  if (!portalJournalData) { content.innerHTML = '<div class="empty-state">Загрузка...</div>'; return; }
+  const file = JOURNAL_TAB_FILES[tab];
+  const text = portalJournalData[file];
+  if (text === null) {
+    content.innerHTML = `<div class="md-empty">${file} не найден в папке docs/</div>`;
+  } else {
+    content.innerHTML = `<div class="md">${renderMarkdown(text)}</div>`;
+  }
+}
+
 // ── Journal ──
 const JOURNAL_TAB_FILES = { state: 'state.md', changelog: 'changelog.md', decisions: 'decisions.md', handoff: 'handoff.md' };
 const JOURNAL_TAB_LABELS = { state: 'Состояние', changelog: 'История', decisions: 'Решения', handoff: 'Передача' };
@@ -794,7 +845,12 @@ function inline(text) {
 // ── File browser ──
 document.getElementById('fb-close-btn').addEventListener('click', closeFileBrowser);
 document.getElementById('fb-vscode-btn').addEventListener('click', () => {
-  if (fbContext) openInVSCode(fbContext.type, fbContext.name);
+  if (!fbContext) return;
+  if (fbContext.type === 'portal') {
+    api('GET', '/api/portal/open').then(({ url }) => window.open(url, '_blank')).catch(e => alert('Ошибка: ' + e.message));
+  } else {
+    openInVSCode(fbContext.type, fbContext.name);
+  }
 });
 
 async function openFileBrowser(type, name, fullPath) {
@@ -805,8 +861,13 @@ async function openFileBrowser(type, name, fullPath) {
   document.getElementById('fb-tree').innerHTML = '<div class="fb-placeholder">Загрузка...</div>';
   document.getElementById('file-browser').classList.remove('hidden');
   try {
-    const prefix = type === 'project' ? 'projects' : 'templates';
-    const tree = await api('GET', `/api/${prefix}/${encodeURIComponent(name)}/tree`);
+    let tree;
+    if (type === 'portal') {
+      tree = await api('GET', '/api/portal/tree');
+    } else {
+      const prefix = type === 'project' ? 'projects' : 'templates';
+      tree = await api('GET', `/api/${prefix}/${encodeURIComponent(name)}/tree`);
+    }
     renderFileTree(tree, type, name);
   } catch (e) {
     document.getElementById('fb-tree').innerHTML = `<div class="fb-placeholder">${esc(e.message)}</div>`;
@@ -851,8 +912,14 @@ async function loadFileContent(type, name, filePath, itemEl) {
   const content = document.getElementById('fb-content');
   content.innerHTML = '<div class="fb-placeholder">Загрузка...</div>';
   try {
-    const prefix = type === 'project' ? 'projects' : 'templates';
-    const { content: text } = await api('GET', `/api/${prefix}/${encodeURIComponent(name)}/file?path=${encodeURIComponent(filePath)}`);
+    let url;
+    if (type === 'portal') {
+      url = `/api/portal/file?path=${encodeURIComponent(filePath)}`;
+    } else {
+      const prefix = type === 'project' ? 'projects' : 'templates';
+      url = `/api/${prefix}/${encodeURIComponent(name)}/file?path=${encodeURIComponent(filePath)}`;
+    }
+    const { content: text } = await api('GET', url);
     content.innerHTML = `<div class="fb-file-header">${esc(filePath)}</div><pre class="fb-file-body">${esc(text)}</pre>`;
   } catch (e) {
     content.innerHTML = `<div class="fb-placeholder">${esc(e.message)}</div>`;
