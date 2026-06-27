@@ -95,7 +95,8 @@
       "Bash(kill 68701)",
       "Bash(curl -s http://127.0.0.1:3000/api/portal/journal)",
       "Bash(curl -s http://127.0.0.1:3000/api/portal/tree)",
-      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: dev-portal как закреплённый элемент навигации \\(D-005\\)\")"
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: dev-portal как закреплённый элемент навигации \\(D-005\\)\")",
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён state.md — актуальное состояние после D-005\")"
     ]
   }
 }
