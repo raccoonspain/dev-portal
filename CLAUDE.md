@@ -31,6 +31,14 @@
 │   │   └── style.css             ← все стили
 │   └── js/
 │       └── app.js                ← весь фронтенд-код
+├── docs/                         ← журнал проекта
+│   ├── state.md                  ← текущее состояние (перезаписывается)
+│   ├── changelog.md              ← история изменений (дописывается)
+│   ├── decisions.md              ← журнал решений D-NNN (дописывается)
+│   ├── handoff.md                ← точка входа для нового исполнителя
+│   └── project-brief.md         ← что за проект и зачем
+├── scripts/
+│   └── snapshot.sh               ← быстрый git-снимок
 ├── data/
 │   └── portal.db                 ← SQLite база данных
 ├── .env                          ← переменные окружения (не в git)
@@ -40,15 +48,17 @@
 └── CLAUDE.md                     ← этот файл
 
 /projects/                        ← папка проектов (каждый в своей подпапке)
-├── my-project-1/
-├── my-project-2/
-└── ...
+├── my-project/
+│   ├── CLAUDE.md                 ← спецификация проекта (опционально)
+│   ├── annotation.md             ← первая строка = описание в таблице портала
+│   ├── docs/                     ← журнал проекта (state/changelog/decisions/handoff)
+│   └── ...
 
 /templates/                       ← шаблоны для новых проектов
-├── bitrix24-local-app/           ← Локальное PHP-приложение Битрикс24
-├── bitrix24-rest-widget/         ← JavaScript REST-виджет для интерфейса Б24
-├── bitrix24-open-lines/          ← Node.js чат-бот для Открытых линий Б24
-└── empty/                        ← Пустой проект
+├── bitrix24-local-app/
+├── bitrix24-rest-widget/
+├── bitrix24-open-lines/
+└── empty/
 ```
 
 ---
@@ -109,11 +119,24 @@ created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 | `POST` | `/api/projects` | Создать папку проекта (опционально — из шаблона) |
 | `DELETE` | `/api/projects/:name` | Удалить папку проекта рекурсивно |
 | `GET` | `/api/projects/:name/open` | Получить URL для открытия в code-server |
+| `GET` | `/api/projects/:name/download` | Скачать ZIP-архив проекта |
+| `GET` | `/api/projects/:name/tree` | Дерево файлов проекта |
+| `GET` | `/api/projects/:name/file` | Содержимое файла (`?path=...`) |
+| `GET` | `/api/projects/:name/journal` | Журнал проекта: state/changelog/decisions/handoff + CLAUDE.md |
+| `POST` | `/api/projects/:name/journal/entry` | Добавить запись в changelog |
+
+### Портал (dev-portal)
+| Метод | Путь | Описание |
+|---|---|---|
+| `GET` | `/api/portal/open` | URL для открытия портала в code-server |
+| `GET` | `/api/portal/tree` | Дерево файлов портала |
+| `GET` | `/api/portal/file` | Содержимое файла портала (`?path=...`) |
+| `GET` | `/api/portal/journal` | Журнал портала + CLAUDE.md из корня |
 
 ### Шаблоны
 | Метод | Путь | Описание |
 |---|---|---|
-| `GET` | `/api/templates` | Список папок из `/templates` с описаниями из `.description` |
+| `GET` | `/api/templates` | Список шаблонов с описаниями из `annotation.md` |
 
 ### Чаты
 | Метод | Путь | Описание |
@@ -152,30 +175,51 @@ created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 ### Страницы (разделы)
 | ID секции | Навигация | Описание |
 |---|---|---|
-| `#page-projects` | Проекты | Карточки проектов, создание, открытие в VS Code, удаление |
+| `#page-portal` | 🅰 dev-portal | Путь портала, браузер файлов, журнал с вкладками |
+| `#page-projects` | Проекты | Таблица проектов, создание, ❓ подробности, обзор файлов, VS Code, ZIP, удаление |
 | `#page-templates` | Шаблоны | Карточки шаблонов, кнопка «Создать проект из шаблона» |
+| `#page-journal` | Журнал | Выбор проекта, markdown-вкладки, добавление записей в changelog |
 | `#page-chat` | Чат Claude | Область чата с историей и полем ввода |
 
 ### Сайдбар
 ```
 Dev Portal
+├── 🅰 dev-portal
 ├── 📁 Проекты
 ├── 📄 Шаблоны
-├── 🤖 Чат Claude  [+]
-│   ├── ▶ !Без темы
-│   │     Название чата 1
-│   ├── ▼ Bitrix24             ← раскрытая группа
-│   │     CRM-интеграция       ← кнопка ✕ при наведении
-│   │     REST виджет задач
-│   └── ▶ Архив
-└── [Выйти]
+├── 📖 Журнал
+├── ▶ 🤖 Чат Claude  [+]      ← стрелка сворачивает/разворачивает список чатов
+│     ├── ▶ !Без темы          ← тема (сворачиваемая группа)
+│     │     Название чата 1
+│     ├── ▼ Bitrix24
+│     │     CRM-интеграция     ← кнопка ✕ при наведении
+│     │     REST виджет задач
+│     └── ▶ Архив
+│
+└── [Выйти]                    ← зафиксирован внизу (position: fixed)
 ```
 
+- Секция «Чат Claude» изначально свёрнута; разворачивается стрелкой ▶ или при переходе на страницу чата
 - Темы сортируются по алфавиту (`!` идёт первым)
 - `!Без темы` — тема по умолчанию
-- Группа с темой автоматически удаляется когда в ней не остаётся чатов
+- Кнопка «Выйти» — `position: fixed; bottom: 0` — не мешает списку чатов
 
-### Статус-бар (во время ожидания ответа)
+### Панели-оверлеи (поверх контентной области)
+| ID | Тип | Назначение |
+|---|---|---|
+| `#file-browser` | `.file-browser` | Дерево файлов + просмотр содержимого; типы `project`, `template`, `portal` |
+| `#project-details` | `.file-browser` | Подробности проекта: путь, Обзор, VS Code, вкладки CLAUDE.md/Состояние/История/Решения |
+
+### Вкладки журнала (используются в нескольких местах)
+| Ключ | Файл | Где используется |
+|---|---|---|
+| `claude` | `CLAUDE.md` | dev-portal, project-details |
+| `state` | `state.md` | dev-portal, project-details, journal |
+| `changelog` | `changelog.md` | dev-portal, project-details, journal |
+| `decisions` | `decisions.md` | dev-portal, project-details, journal |
+| `handoff` | `handoff.md` | journal |
+
+### Статус-бар (во время ожидания ответа от Claude)
 ```
 ⠹  Обрабатываю...                              8 с
 ```
@@ -207,6 +251,12 @@ sudo systemctl stop dev-portal
 sudo systemctl status code-server@deploy
 sudo systemctl restart code-server@deploy
 ```
+
+Параметры `dev-portal.service` (`/etc/systemd/system/dev-portal.service`):
+- `Restart=always` — перезапуск при любом коде выхода
+- `KillMode=control-group` — убивает все процессы cgroup, не только main PID
+- `StartLimitIntervalSec=0` — без ограничения на частоту перезапусков
+- `TimeoutStopSec=10` — SIGKILL через 10 сек если процесс завис
 
 ### Конфиг code-server
 `~/.config/code-server/config.yaml`
@@ -263,7 +313,7 @@ sudo systemctl restart dev-portal
 | `empty` | Пустой проект | — |
 
 Каждый шаблон содержит:
-- `.description` — однострочное описание (отображается в портале)
+- `annotation.md` — первая строка = описание в таблице портала
 - `README.md` — инструкция по запуску
 - `.env.example` — шаблон переменных окружения
 
