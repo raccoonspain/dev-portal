@@ -1304,6 +1304,7 @@ function sortProcesses(procs) {
     let va, vb;
     if (serverSortCol === 'cpu') { va = a.cpu; vb = b.cpu; }
     else if (serverSortCol === 'mem') { va = a.mem; vb = b.mem; }
+    else if (serverSortCol === 'user') { va = a.user.toLowerCase(); vb = b.user.toLowerCase(); }
     else { va = a.cmd.toLowerCase(); vb = b.cmd.toLowerCase(); }
     if (va < vb) return serverSortDir === 'asc' ? -1 : 1;
     if (va > vb) return serverSortDir === 'asc' ? 1 : -1;
@@ -1346,7 +1347,7 @@ function renderServerDashboard(container) {
     <div class="server-procs-wrap">
       <table class="data-table">
         <thead><tr>
-          <th>PID</th><th>USER</th>
+          <th>PID</th><th class="${thCls('user')}" data-sort="user">USER${thArrow('user')}</th>
           <th class="${thCls('cpu')}" data-sort="cpu">CPU%${thArrow('cpu')}</th>
           <th class="${thCls('mem')}" data-sort="mem">MEM%${thArrow('mem')}</th>
           <th class="${thCls('cmd')}" data-sort="cmd">COMMAND${thArrow('cmd')}</th>
@@ -1367,7 +1368,7 @@ function renderServerDashboard(container) {
         serverSortDir = serverSortDir === 'desc' ? 'asc' : 'desc';
       } else {
         serverSortCol = col;
-        serverSortDir = col === 'cmd' ? 'asc' : 'desc';
+        serverSortDir = (col === 'cmd' || col === 'user') ? 'asc' : 'desc';
       }
       renderServerDashboard(container);
     });
