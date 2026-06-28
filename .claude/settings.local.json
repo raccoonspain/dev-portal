@@ -158,7 +158,8 @@
       "Bash(curl -s http://localhost:3000/api/projects -b /tmp/portal-cookies.txt)",
       "Bash(python3 -c \"import json,sys; ps=json.load\\(sys.stdin\\); print\\([p['name'] for p in ps[:3]]\\)\")",
       "Bash(curl -s http://localhost:3000/ -b /tmp/portal-cookies.txt)",
-      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: кнопка ссылки для привязки к порталу Б24 \\(D-013\\)\")"
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: кнопка ссылки для привязки к порталу Б24 \\(D-013\\)\")",
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"log: кнопка 🔗 привязки к Б24 добавлена и верифицирована\")"
     ]
   }
 }
