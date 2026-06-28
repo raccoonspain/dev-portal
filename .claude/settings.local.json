@@ -142,7 +142,8 @@
       "Bash(curl -s http://localhost:3000/css/style.css)",
       "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/review-package\" dc90470 02be7cf)",
       "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/review-package\" 00190dc 02be7cf)",
-      "Bash(bash scripts/snapshot.sh \"feat: дашборд ресурсов сервера\")"
+      "Bash(bash scripts/snapshot.sh \"feat: дашборд ресурсов сервера\")",
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: дашборд ресурсов сервера как вкладка dev-portal \\(D-011\\)\")"
     ]
   }
 }
