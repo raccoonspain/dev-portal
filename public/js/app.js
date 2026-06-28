@@ -125,6 +125,7 @@ async function loadProjects() {
           <button class="btn-action btn-browse" data-name="${esc(p.name)}" data-full-path="${esc(p.fullPath)}" title="Обзор файлов">&#128194;</button>
           <button class="btn-action btn-open" data-name="${esc(p.name)}" title="Открыть в VS Code">&#9000;</button>
           <button class="btn-action btn-download" data-name="${esc(p.name)}" title="Скачать ZIP">&#128229;</button>
+          <button class="btn-action btn-b24link" data-name="${esc(p.name)}" title="Скопировать ссылку для привязки к порталу Б24">🔗</button>
           <button class="btn-action danger btn-delete" data-name="${esc(p.name)}" title="Удалить">&#128465;</button>
         </td>`;
       tbody.appendChild(tr);
@@ -139,6 +140,7 @@ async function loadProjects() {
       openFileBrowser('project', b.dataset.name, b.dataset.fullPath)));
     list.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', () => openProject(b.dataset.name)));
     list.querySelectorAll('.btn-download').forEach(b => b.addEventListener('click', () => downloadProject(b.dataset.name)));
+    list.querySelectorAll('.btn-b24link').forEach(b => b.addEventListener('click', () => copyB24Link(b.dataset.name, b)));
     list.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', () => showDeleteModal(b.dataset.name)));
   } catch (e) { list.innerHTML = `<div class="empty-state error">${esc(e.message)}</div>`; }
 }
@@ -194,6 +196,9 @@ document.getElementById('pd-browse-btn').addEventListener('click', () => {
 document.getElementById('pd-vscode-btn').addEventListener('click', () => {
   openProject(projectDetailsName);
 });
+document.getElementById('pd-b24link-btn').addEventListener('click', e => {
+  copyB24Link(projectDetailsName, e.currentTarget);
+});
 document.querySelectorAll('.pdtab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.pdtab').forEach(b => b.classList.remove('active'));
@@ -225,6 +230,17 @@ function copyToClipboard(text, el) {
     const orig = el.style.color;
     el.style.color = '#6c63ff';
     setTimeout(() => { el.style.color = orig; }, 800);
+  }).catch(() => {});
+}
+
+function copyB24Link(name, el) {
+  const url = `https://b24.blackboxbegin.space/${encodeURIComponent(name)}/index.php`;
+  const origTitle = el.title;
+  navigator.clipboard.writeText(url).then(() => {
+    el.title = 'Скопировано!';
+    const orig = el.style.color;
+    el.style.color = '#6c63ff';
+    setTimeout(() => { el.style.color = orig; el.title = origTitle; }, 1200);
   }).catch(() => {});
 }
 
