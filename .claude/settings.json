@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bash scripts/snapshot.sh \"решение: деплой Б24 через PHP 8.3-FPM + OAuth server-side \\(D-008\\)\")"
+      "Bash(bash scripts/snapshot.sh \"решение: деплой Б24 через PHP 8.3-FPM + OAuth server-side \\(D-008\\)\")",
+      "Bash(ps aux *)",
+      "Bash(nproc && free -h && cat /proc/cpuinfo | grep \"model name\" | head -1)",
+      "Read(//proc/**)",
+      "Bash(kill 133026 133110)"
     ]
   }
 }

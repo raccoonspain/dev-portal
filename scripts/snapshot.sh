@@ -8,3 +8,8 @@ git commit -m "$MSG
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 echo "✓ Снимок: $MSG"
 git log --oneline -5
+
+# Отправляем на GitHub, если удалённый репозиторий подключён
+if git remote get-url origin &>/dev/null; then
+  git push -q origin HEAD 2>&1 && echo "✓ Отправлено на GitHub"
+fi
