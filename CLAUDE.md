@@ -277,6 +277,15 @@ vibe.blackboxbegin.space {
         reverse_proxy localhost:3000
     }
 }
+
+b24.blackboxbegin.space {
+    handle /<slug>* {
+        uri strip_prefix /<slug>
+        root * /var/www/b24/<slug>
+        php_fastcgi unix//run/php/php8.3-fpm.sock
+        file_server
+    }
+}
 ```
 
 ---
@@ -307,7 +316,7 @@ sudo systemctl restart dev-portal
 
 | Папка | Описание | Технология |
 |---|---|---|
-| `bitrix24-local-app` | Локальное приложение с OAuth-авторизацией | PHP |
+| `_b24-single-php` | Single-tenant local-app: OAuth server-side, файловый store | PHP 8.3 |
 | `bitrix24-rest-widget` | Виджет для встройки в интерфейс Б24 | JavaScript (BX24 JS SDK) |
 | `bitrix24-open-lines` | Чат-бот для Открытых линий | Node.js + Express |
 | `empty` | Пустой проект | — |
@@ -321,10 +330,9 @@ sudo systemctl restart dev-portal
 
 ## Деплой проектов
 
-Деплой производится на **отдельный VPS** (не этот).
-Этот VPS используется только для разработки.
-Основной домен: `blackboxbegin.space`
-Портал разработки: `vibe.blackboxbegin.space`
+В настоящее время Б24-приложения деплоятся на **этот же VPS** (`b24.blackboxbegin.space`).
+Разработка и продакшн живут на одной машине.
+Будет пересмотрено, если будет принято решение о разделении серверов.
 
 ---
 
@@ -374,49 +382,68 @@ sudo systemctl restart dev-portal
   - Владелец конфига: root (нужен sudo для правки)
   - Перезагрузка БЕЗ sudo: `/usr/bin/caddy reload --config /etc/caddy/Caddyfile`
   - Проверка текущего конфига в памяти: `curl http://localhost:2019/config/`
-- **Node.js**: v20
-- **PM2**: менеджер процессов для Node.js-приложений (`pm2 list`, `pm2 logs <name>`)
+- **PHP 8.3-FPM**: обрабатывает Б24-приложения
+  - Сокет: `/run/php/php8.3-fpm.sock`
+  - Пользователь процесса: `www-data`
+  - Управление: `sudo systemctl restart php8.3-fpm`
+- **Node.js v20 + PM2**: только для dev-portal (порт 3000)
+  - Б24-приложения на PM2 больше НЕ запускаются — только PHP-FPM
 - **SSL**: Caddy получает сертификаты Let's Encrypt автоматически при добавлении нового домена в Caddyfile
 
 ### Домен для Битрикс24-приложений
 
 `b24.blackboxbegin.space` — все Б24-приложения живут здесь, разделены по путям:
-- `/ap-simple-test/` → порт 3001
-- `/следующий-проект/` → порт 3002
-- и т.д.
+- `/ap-simple-test/` → PHP-FPM (`/var/www/b24/ap-simple-test/`)
+- `/следующий-проект/` → PHP-FPM (`/var/www/b24/<slug>/`)
 
-### Как добавить новый Б24-проект
+### Как добавить новый Б24-проект (PHP, шаблон _b24-single-php)
 
-1. **Создать папку** (если нужны статические файлы без Node):
-       sudo mkdir -p /var/www/b24/<проект>
-       sudo chown deploy:deploy /var/www/b24/<проект>
+1. **Создать проект из шаблона** в `/projects/<slug>/`
 
-2. **Запустить Node-сервер через PM2** (для приложений с Express):
-       PORT=300X pm2 start /projects/<проект>/src/server.js --name <проект>
-       pm2 save
+2. **Задеплоить**:
+       cd /projects/<slug>
+       bash deploy.sh
+   Создаст `/var/www/b24/<slug>/` и выставит нужные права на `data/`.
 
-3. **Добавить блок в `/etc/caddy/Caddyfile`** (sudo):
-       handle /<проект>* {
-           uri strip_prefix /<проект>
-           reverse_proxy localhost:300X
+3. **Добавить блок в `/etc/caddy/Caddyfile`** (sudo) внутрь `b24.blackboxbegin.space`:
+       handle /<slug>* {
+           uri strip_prefix /<slug>
+           root * /var/www/b24/<slug>
+           php_fastcgi unix//run/php/php8.3-fpm.sock
+           file_server
        }
 
 4. **Перезагрузить Caddy** (без sudo):
        /usr/bin/caddy reload --config /etc/caddy/Caddyfile
 
-### Занятые порты
+5. **Открыть init.php** в браузере:
+       https://b24.blackboxbegin.space/<slug>/init.php
+   Вручную исправить `APP_URL` в `/var/www/b24/<slug>/env.php` —
+   добавить `/<slug>` в конец (Caddy strip_prefix убирает его из SCRIPT_NAME).
+
+6. **Вписать credentials** из карточки local-app в Б24 → `env.php`.
+
+7. **Зарегистрировать приложение в Б24**:
+   - Тип: Серверное
+   - Путь обработчика: `https://b24.blackboxbegin.space/<slug>/index.php`
+   - Путь установки: тот же
+
+### Занятые порты (только Node.js-сервисы)
 
 | Порт | Что |
 |------|-----|
-| 3000 | dev-portal |
-| 3001 | ap-simple-test |
+| 3000 | dev-portal (Node.js + Express) |
 | 8080 | code-server (VS Code) |
+
+Б24-приложения портов не занимают — работают через PHP-FPM сокет.
 
 ### Важные нюансы
 
 - Caddy запущен как пользователь `caddy`, файлы в `/home/deploy/` ему недоступны.
-  Статику держать в `/var/www/b24/` (владелец deploy, права 755).
+  Б24-приложения держать в `/var/www/b24/` (владелец `deploy`).
 - `sudo systemctl reload caddy` может не применить новый конфиг — использовать
   `/usr/bin/caddy reload --config /etc/caddy/Caddyfile` напрямую.
-- Bitrix24 открывает iframe через POST-запрос. Чистый статический файл-сервер
-  не работает — нужен Express, который отвечает на POST `/` тем же index.html.
+- PHP-FPM работает от `www-data`, деплой от `deploy` → папка `data/` нужна с правами `0777`.
+  Содержимое файлов в `data/` защищено `<?php exit;?>`, не правами ФС.
+- `uri strip_prefix` в Caddy убирает slug из `SCRIPT_NAME` до PHP → `init.php`
+  определяет APP_URL без `/<slug>`. Исправлять вручную в `env.php` после первого запуска.
