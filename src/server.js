@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const Database = require('better-sqlite3');
 const archiver = require('archiver');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
@@ -475,6 +475,71 @@ app.get('/api/portal/journal', auth, (req, res) => {
   const claudeMd = path.join(PORTAL_DIR, 'CLAUDE.md');
   result['CLAUDE.md'] = fs.existsSync(claudeMd) ? fs.readFileSync(claudeMd, 'utf8') : null;
   res.json(result);
+});
+
+// --- Server stats ---
+app.get('/api/server/stats', auth, async (req, res) => {
+  try {
+    // CPU: два снимка /proc/stat с паузой 200ms
+    function readCpuLine() {
+      const line = fs.readFileSync('/proc/stat', 'utf8').split('\n')[0];
+      const parts = line.trim().split(/\s+/).slice(1).map(Number);
+      const idle = parts[3] + (parts[4] || 0); // idle + iowait
+      const total = parts.reduce((a, b) => a + b, 0);
+      return { idle, total };
+    }
+    const snap1 = readCpuLine();
+    await new Promise(r => setTimeout(r, 200));
+    const snap2 = readCpuLine();
+    const deltaIdle = snap2.idle - snap1.idle;
+    const deltaTotal = snap2.total - snap1.total;
+    const cpuUsed = deltaTotal > 0 ? Math.round(100 * (1 - deltaIdle / deltaTotal) * 10) / 10 : 0;
+
+    // RAM: /proc/meminfo (значения в kB → МБ)
+    const memInfo = fs.readFileSync('/proc/meminfo', 'utf8');
+    const getMemVal = key => {
+      const m = memInfo.match(new RegExp(`^${key}:\\s+(\\d+)`, 'm'));
+      return m ? Math.round(parseInt(m[1]) / 1024) : 0;
+    };
+    const ramTotal = getMemVal('MemTotal');
+    const ramAvail = getMemVal('MemAvailable');
+    const ramUsed = ramTotal - ramAvail;
+
+    // Disk: df -h /
+    const dfOut = execSync('df -h /', { encoding: 'utf8' });
+    const dfParts = dfOut.trim().split('\n')[1].trim().split(/\s+/);
+    const disk = {
+      total: dfParts[1],
+      used: dfParts[2],
+      free: dfParts[3],
+      pct: parseInt(dfParts[4])
+    };
+
+    // Processes: ps aux --sort=-%cpu --no-headers
+    // Колонки: USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND...
+    const psOut = execSync('ps aux --sort=-%cpu --no-headers', { encoding: 'utf8' });
+    const processes = psOut.trim().split('\n')
+      .filter(l => l.trim())
+      .map(line => {
+        const parts = line.trim().split(/\s+/);
+        return {
+          user: parts[0],
+          pid: parseInt(parts[1]),
+          cpu: parseFloat(parts[2]),
+          mem: parseFloat(parts[3]),
+          cmd: parts.slice(10).join(' ')
+        };
+      });
+
+    res.json({
+      cpu: { used: cpuUsed },
+      ram: { total: ramTotal, used: ramUsed, free: ramAvail },
+      disk,
+      processes
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // --- SPA fallback ---
