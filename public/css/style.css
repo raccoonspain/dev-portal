@@ -498,3 +498,4 @@ th.sort-active { color: var(--accent); }
   max-width: 400px; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; font-family: monospace; font-size: 12px;
 }
+.server-procs-wrap .empty-state.error { color: var(--srv-red); }
