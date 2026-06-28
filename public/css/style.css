@@ -458,3 +458,43 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Server dashboard ── */
+:root {
+  --srv-green: #4caf7d;
+  --srv-yellow: #f0a500;
+  --srv-red: #e05252;
+}
+
+.server-toolbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 0 12px; flex-shrink: 0;
+}
+.server-updated { font-size: 13px; color: var(--text-muted); }
+
+.server-cards-row {
+  display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+}
+.server-card {
+  flex: 1; min-width: 160px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px;
+}
+.server-card-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px;
+}
+.server-bar-wrap {
+  height: 6px; background: var(--bg3); border-radius: 3px;
+  overflow: hidden; margin-bottom: 8px;
+}
+.server-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.server-card-val { font-size: 14px; font-weight: 500; }
+
+.server-procs-wrap { overflow-y: auto; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text); }
+th.sort-active { color: var(--accent); }
+.server-cmd {
+  max-width: 400px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-family: monospace; font-size: 12px;
+}

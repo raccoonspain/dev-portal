@@ -24,6 +24,9 @@ let projectChatOpen = false;
 let _pcpStatusInterval = null;
 let chatPastedImage = null;
 let pcpPastedImage = null;
+let serverStatsData = null;
+let serverSortCol = 'cpu';
+let serverSortDir = 'desc';
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
@@ -768,6 +771,11 @@ async function loadPortalPage() {
 
 function renderPortalJournalTab(tab) {
   const content = document.getElementById('portal-journal-content');
+  if (tab === 'server') {
+    if (serverStatsData) renderServerDashboard(content);
+    else loadServerStats(content);
+    return;
+  }
   if (!portalJournalData) { content.innerHTML = '<div class="empty-state">Загрузка...</div>'; return; }
   const file = JOURNAL_TAB_FILES[tab];
   const text = portalJournalData[file];
@@ -1263,4 +1271,105 @@ async function api(method, url, body) {
 
 function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Server dashboard ──
+async function loadServerStats(container) {
+  container.innerHTML = '<div class="empty-state">Загрузка данных сервера...</div>';
+  try {
+    serverStatsData = await api('GET', '/api/server/stats');
+    renderServerDashboard(container);
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state error">${esc(e.message)}</div>`;
+  }
+}
+
+function barColor(pct) {
+  if (pct > 85) return 'var(--srv-red)';
+  if (pct > 60) return 'var(--srv-yellow)';
+  return 'var(--srv-green)';
+}
+
+function metricCard(label, pct, valHtml) {
+  const color = barColor(pct);
+  return `<div class="server-card">
+    <div class="server-card-label">${label}</div>
+    <div class="server-bar-wrap"><div class="server-bar" style="width:${Math.min(pct, 100)}%;background:${color}"></div></div>
+    <div class="server-card-val">${valHtml}</div>
+  </div>`;
+}
+
+function sortProcesses(procs) {
+  return [...procs].sort((a, b) => {
+    let va, vb;
+    if (serverSortCol === 'cpu') { va = a.cpu; vb = b.cpu; }
+    else if (serverSortCol === 'mem') { va = a.mem; vb = b.mem; }
+    else { va = a.cmd.toLowerCase(); vb = b.cmd.toLowerCase(); }
+    if (va < vb) return serverSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return serverSortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderServerDashboard(container) {
+  const { cpu, ram, disk, processes } = serverStatsData;
+  const now = new Date().toLocaleTimeString('ru-RU');
+  const ramPct = Math.round(ram.used / ram.total * 100);
+  const ramTotalGB = (ram.total / 1024).toFixed(1);
+  const ramUsedGB = (ram.used / 1024).toFixed(1);
+
+  function thCls(col) { return `sortable${serverSortCol === col ? ' sort-active' : ''}`; }
+  function thArrow(col) {
+    if (serverSortCol !== col) return '';
+    return serverSortDir === 'desc' ? ' &#9660;' : ' &#9650;';
+  }
+
+  const sorted = sortProcesses(processes);
+  const rows = sorted.map(p => `<tr>
+    <td>${p.pid}</td>
+    <td>${esc(p.user)}</td>
+    <td>${p.cpu.toFixed(1)}</td>
+    <td>${p.mem.toFixed(1)}</td>
+    <td class="server-cmd">${esc(p.cmd)}</td>
+  </tr>`).join('');
+
+  container.innerHTML = `
+    <div class="server-toolbar">
+      <button id="server-refresh-btn" class="btn-primary">&#8635; Обновить</button>
+      <span class="server-updated">Обновлено: ${esc(now)}</span>
+    </div>
+    <div class="server-cards-row">
+      ${metricCard('CPU', cpu.used, `${cpu.used}%`)}
+      ${metricCard('RAM', ramPct, `${ramUsedGB} / ${ramTotalGB} GB`)}
+      ${metricCard('Диск', disk.pct, `${esc(disk.used)} / ${esc(disk.total)}`)}
+    </div>
+    <div class="server-procs-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>PID</th><th>USER</th>
+          <th class="${thCls('cpu')}" data-sort="cpu">CPU%${thArrow('cpu')}</th>
+          <th class="${thCls('mem')}" data-sort="mem">MEM%${thArrow('mem')}</th>
+          <th class="${thCls('cmd')}" data-sort="cmd">COMMAND${thArrow('cmd')}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  document.getElementById('server-refresh-btn').addEventListener('click', () => {
+    serverStatsData = null;
+    loadServerStats(container);
+  });
+
+  container.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (serverSortCol === col) {
+        serverSortDir = serverSortDir === 'desc' ? 'asc' : 'desc';
+      } else {
+        serverSortCol = col;
+        serverSortDir = col === 'cmd' ? 'asc' : 'desc';
+      }
+      renderServerDashboard(container);
+    });
+  });
 }
