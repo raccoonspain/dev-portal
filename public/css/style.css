@@ -304,11 +304,31 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   display: flex; gap: 10px; align-items: flex-end;
   padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
 }
-#chat-input {
-  flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+.chat-input-col { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+#chat-input, .pcp-textarea {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text); padding: 10px 14px; font-size: 14px; resize: none; outline: none; font-family: inherit;
 }
-#chat-input:focus { border-color: var(--accent); }
+#chat-input:focus, .pcp-textarea:focus { border-color: var(--accent); }
+
+.chat-img-preview {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; background: var(--bg3); border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.img-thumb { height: 44px; max-width: 100px; border-radius: 4px; object-fit: contain; flex-shrink: 0; }
+.img-preview-label { font-size: 12px; color: var(--text-muted); flex: 1; }
+.img-clear-btn {
+  background: none; border: none; color: var(--text-muted); cursor: pointer;
+  font-size: 13px; padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.img-clear-btn:hover { color: var(--danger); }
+
+.msg-img-thumb {
+  max-width: 260px; max-height: 180px; border-radius: 6px;
+  object-fit: contain; display: block; margin-bottom: 6px; cursor: zoom-in;
+}
 
 .chat-empty-state {
   flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -420,6 +440,19 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 }
 .pjtab:hover { color: var(--text); }
 .pjtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Project chat panel ── */
+#project-details.pd-split {
+  right: calc(50% - 120px);
+}
+
+#project-chat-panel {
+  position: absolute; left: calc(50% + 120px); top: 0; right: 0; bottom: 0;
+  z-index: 20; background: var(--bg);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; }

@@ -55,7 +55,7 @@ app.use((req, res, next) => {
   );
   next();
 });
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 function auth(req, res, next) {
@@ -336,15 +336,36 @@ app.get('/api/chats/:id/messages', auth, (req, res) => {
 
 // --- Chat with Claude (with history) ---
 app.post('/api/chat', auth, (req, res) => {
-  const { chat_id, message } = req.body;
-  if (!message) return res.status(400).json({ error: 'No message' });
+  const { chat_id, message: rawMessage = '', image } = req.body;
+  const message = String(rawMessage).trim();
+  if (!message && !image) return res.status(400).json({ error: 'No message or image' });
   if (!chat_id) return res.status(400).json({ error: 'No chat_id' });
 
   const chat = db.prepare('SELECT id, name, session_id FROM chats WHERE id=?').get(Number(chat_id));
   if (!chat) return res.status(404).json({ error: 'Chat not found' });
 
-  // Save user message immediately
-  db.prepare('INSERT INTO messages (chat_id, role, content) VALUES (?,?,?)').run(chat.id, 'user', message);
+  // Prepare image: save to temp file and build Claude instruction
+  let messageForClaude = message;
+  let tmpImagePath = null;
+  if (image) {
+    const m = String(image).match(/^data:image\/(png|jpe?g|gif|webp);base64,(.+)$/);
+    if (m) {
+      const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+      tmpImagePath = path.join('/tmp', `portal-img-${Date.now()}.${ext}`);
+      try {
+        fs.writeFileSync(tmpImagePath, Buffer.from(m[2], 'base64'));
+        const imgNote = `[Изображение вложено пользователем. Файл: ${tmpImagePath}. Прочитай этот файл с помощью Read перед ответом.]`;
+        messageForClaude = message ? `${message}\n\n${imgNote}` : imgNote;
+      } catch (e) {
+        console.error('[image save]', e.message);
+        tmpImagePath = null;
+      }
+    }
+  }
+
+  // Save original (display) message to DB
+  const displayMessage = message || '📎';
+  db.prepare('INSERT INTO messages (chat_id, role, content) VALUES (?,?,?)').run(chat.id, 'user', displayMessage);
   db.prepare('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?').run(chat.id);
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -359,11 +380,10 @@ app.post('/api/chat', auth, (req, res) => {
     '--model', 'claude-sonnet-4-6',
   ];
 
-  // Resume previous session if exists
   if (chat.session_id) {
     args.push('--resume', chat.session_id);
   }
-  args.push(message);
+  args.push(messageForClaude);
 
   const proc = spawn(CLAUDE_PATH, args, {
     env: { ...process.env, HOME: '/home/deploy' },
@@ -411,7 +431,7 @@ app.post('/api/chat', auth, (req, res) => {
 
   proc.on('close', () => {
     done = true;
-    // Save assistant response and session_id
+    if (tmpImagePath) { try { fs.unlinkSync(tmpImagePath); } catch {} }
     if (assistantText) {
       db.prepare('INSERT INTO messages (chat_id, role, content) VALUES (?,?,?)').run(chat.id, 'assistant', assistantText);
     }

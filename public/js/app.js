@@ -18,6 +18,12 @@ let projectDetailsData = null;
 let projectDetailsTab = 'claude';
 let projectDetailsName = null;
 let projectDetailsFullPath = null;
+let projectChatId = null;
+let projectChatBusy = false;
+let projectChatOpen = false;
+let _pcpStatusInterval = null;
+let chatPastedImage = null;
+let pcpPastedImage = null;
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
@@ -139,6 +145,7 @@ async function openProject(name) {
 }
 
 async function openProjectDetails(name, fullPath) {
+  if (projectChatOpen && projectDetailsName !== name) closeProjectChatPanel();
   projectDetailsName = name;
   projectDetailsFullPath = fullPath;
   document.getElementById('pd-title').textContent = `📁 ${name}`;
@@ -172,6 +179,7 @@ function renderProjectDetailsTab(tab) {
 }
 
 document.getElementById('pd-close-btn').addEventListener('click', () => {
+  closeProjectChatPanel();
   document.getElementById('project-details').classList.add('hidden');
 });
 document.getElementById('pd-path').addEventListener('click', e => {
@@ -622,13 +630,20 @@ async function sendChat() {
   if (chatBusy || !currentChatId) return;
   const input = document.getElementById('chat-input');
   const msg = input.value.trim();
-  if (!msg) return;
+  if (!msg && !chatPastedImage) return;
 
   input.value = '';
   chatBusy = true;
   document.getElementById('chat-send-btn').disabled = true;
 
-  appendChatMsg('user', msg);
+  const image = chatPastedImage;
+  if (chatPastedImage) {
+    chatPastedImage = null;
+    document.getElementById('chat-img-preview').classList.add('hidden');
+    document.getElementById('chat-img-thumb').src = '';
+  }
+
+  appendChatMsg('user', msg, image);
   const assistantEl = appendChatMsg('assistant', '');
   const bubble = assistantEl.querySelector('.bubble');
   let fullText = '';
@@ -637,10 +652,12 @@ async function sendChat() {
   startStatus();
 
   try {
+    const body = { chat_id: currentChatId, message: msg };
+    if (image) body.image = image;
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: currentChatId, message: msg })
+      body: JSON.stringify(body)
     });
     if (!response.ok) { bubble.textContent = 'Ошибка запроса'; return; }
 
@@ -678,13 +695,21 @@ async function sendChat() {
   }
 }
 
-function appendChatMsg(role, text) {
+function appendChatMsg(role, text, image = null) {
   const msgs = document.getElementById('chat-messages');
   const el = document.createElement('div');
   el.className = `chat-msg ${role}`;
-  el.innerHTML = role === 'assistant'
-    ? `<div class="role">Claude</div><div class="bubble">${esc(text)}</div>`
-    : `<div class="bubble">${esc(text)}</div>`;
+  if (role === 'assistant') {
+    el.innerHTML = `<div class="role">Claude</div><div class="bubble">${esc(text)}</div>`;
+  } else {
+    el.innerHTML = `<div class="bubble">${esc(text) || '📎'}</div>`;
+    if (image && image.startsWith('data:image/')) {
+      const img = document.createElement('img');
+      img.src = image;
+      img.className = 'msg-img-thumb';
+      el.insertBefore(img, el.firstChild);
+    }
+  }
   msgs.appendChild(el);
   scrollChat();
   return el;
@@ -696,6 +721,16 @@ function scrollChat() {
 }
 
 // ── Portal page ──
+document.getElementById('portal-chat-btn').addEventListener('click', () => {
+  if (projectChatOpen && projectDetailsName === 'dev-portal') {
+    closeProjectChatPanel();
+  } else {
+    projectDetailsName = 'dev-portal';
+    projectDetailsFullPath = '/home/deploy/dev-portal';
+    openProjectChatPanel();
+  }
+});
+
 document.getElementById('portal-path').addEventListener('click', e => {
   copyToClipboard(e.currentTarget.dataset.path, e.currentTarget);
 });
@@ -991,6 +1026,223 @@ async function loadFileContent(type, name, filePath, itemEl) {
     content.innerHTML = `<div class="fb-placeholder">${esc(e.message)}</div>`;
   }
 }
+
+// ── Project chat panel ──
+document.getElementById('pd-chat-btn').addEventListener('click', () => {
+  if (projectChatOpen) closeProjectChatPanel();
+  else openProjectChatPanel();
+});
+document.getElementById('pcp-close-btn').addEventListener('click', closeProjectChatPanel);
+document.getElementById('pcp-send-btn').addEventListener('click', pcpSendMessage);
+document.getElementById('pcp-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pcpSendMessage(); }
+});
+document.getElementById('pcp-new-btn').addEventListener('click', async () => {
+  if (!projectDetailsName || projectChatBusy) return;
+  document.getElementById('pcp-messages').innerHTML = '';
+  await pcpInitChat(projectDetailsName, projectDetailsFullPath);
+  document.getElementById('pcp-input').focus();
+});
+
+async function openProjectChatPanel() {
+  if (!projectDetailsName) return;
+  projectChatOpen = true;
+  document.getElementById('project-details').classList.add('pd-split');
+  document.getElementById('project-chat-panel').classList.remove('hidden');
+  document.getElementById('pcp-title').textContent = '\u{1F916} ' + projectDetailsName;
+  document.getElementById('pcp-messages').innerHTML = '';
+  await pcpInitChat(projectDetailsName, projectDetailsFullPath);
+  document.getElementById('pcp-input').focus();
+}
+
+function closeProjectChatPanel() {
+  projectChatOpen = false;
+  projectChatId = null;
+  projectChatBusy = false;
+  document.getElementById('project-details').classList.remove('pd-split');
+  document.getElementById('project-chat-panel').classList.add('hidden');
+}
+
+async function pcpInitChat(projectName, projectPath) {
+  projectChatBusy = true;
+  document.getElementById('pcp-send-btn').disabled = true;
+  try {
+    const chat = await api('POST', '/api/chats', { name: projectName, topic: projectName });
+    openTopics.add(projectName);
+    loadChatList();
+    projectChatId = chat.id;
+
+    const greetEl = pcpAppendMsg('assistant', '');
+    const bubble = greetEl.querySelector('.bubble');
+    pcpStartStatus();
+
+    const initMsg = `Открыт контекстный чат для проекта "${projectName}" (путь: ${projectPath}). Поприветствуй пользователя одной фразой: напиши что открыт чат по проекту "${projectName}" и предложи помощь.`;
+    await pcpStreamToElement(chat.id, initMsg, bubble);
+  } catch (e) {
+    pcpAppendMsg('assistant', `Чат по проекту открыт.`);
+  } finally {
+    pcpStopStatus();
+    projectChatBusy = false;
+    document.getElementById('pcp-send-btn').disabled = false;
+  }
+}
+
+async function pcpStreamToElement(chatId, message, bubbleEl, image = null) {
+  const body = { chat_id: chatId, message };
+  if (image) body.image = image;
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) throw new Error('Ошибка запроса');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let fullText = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') break;
+      try {
+        const obj = JSON.parse(data);
+        if (obj.text) {
+          if (!fullText) pcpStopStatus();
+          fullText += obj.text;
+          bubbleEl.textContent = fullText;
+          pcpScrollChat();
+        }
+      } catch {}
+    }
+  }
+}
+
+function pcpAppendMsg(role, text, image = null) {
+  const msgs = document.getElementById('pcp-messages');
+  const empty = msgs.querySelector('.empty-state');
+  if (empty) empty.remove();
+  const el = document.createElement('div');
+  el.className = `chat-msg ${role}`;
+  if (role === 'assistant') {
+    el.innerHTML = `<div class="role">Claude</div><div class="bubble">${esc(text)}</div>`;
+  } else {
+    el.innerHTML = `<div class="bubble">${esc(text) || '📎'}</div>`;
+    if (image && image.startsWith('data:image/')) {
+      const img = document.createElement('img');
+      img.src = image;
+      img.className = 'msg-img-thumb';
+      el.insertBefore(img, el.firstChild);
+    }
+  }
+  msgs.appendChild(el);
+  pcpScrollChat();
+  return el;
+}
+
+function pcpScrollChat() {
+  const msgs = document.getElementById('pcp-messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function pcpSendMessage() {
+  if (projectChatBusy || !projectChatId) return;
+  const input = document.getElementById('pcp-input');
+  const msg = input.value.trim();
+  if (!msg && !pcpPastedImage) return;
+
+  input.value = '';
+  projectChatBusy = true;
+  document.getElementById('pcp-send-btn').disabled = true;
+
+  const image = pcpPastedImage;
+  if (pcpPastedImage) {
+    pcpPastedImage = null;
+    document.getElementById('pcp-img-preview').classList.add('hidden');
+    document.getElementById('pcp-img-thumb').src = '';
+  }
+
+  pcpAppendMsg('user', msg, image);
+  const assistantEl = pcpAppendMsg('assistant', '');
+  const bubble = assistantEl.querySelector('.bubble');
+  pcpStartStatus();
+
+  try {
+    await pcpStreamToElement(projectChatId, msg, bubble, image);
+  } catch (e) {
+    bubble.textContent = 'Ошибка: ' + e.message;
+  } finally {
+    pcpStopStatus();
+    projectChatBusy = false;
+    document.getElementById('pcp-send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function pcpStartStatus() {
+  const bar = document.getElementById('pcp-status-bar');
+  bar.classList.remove('hidden');
+  let frame = 0;
+  const t0 = Date.now();
+  _pcpStatusInterval = setInterval(() => {
+    const elapsed = (Date.now() - t0) / 1000;
+    frame = (frame + 1) % SPINNER_FRAMES.length;
+    document.getElementById('pcp-spinner').textContent = SPINNER_FRAMES[frame];
+    const phase = STATUS_PHASES.find(p => elapsed < p.until) || STATUS_PHASES.at(-1);
+    document.getElementById('pcp-status-text').textContent = phase.text;
+    const s = Math.floor(elapsed);
+    document.getElementById('pcp-status-timer').textContent = s < 60 ? `${s} с` : `${Math.floor(s/60)}м ${s%60}с`;
+  }, 100);
+}
+
+function pcpStopStatus() {
+  clearInterval(_pcpStatusInterval);
+  _pcpStatusInterval = null;
+  document.getElementById('pcp-status-bar').classList.add('hidden');
+}
+
+// ── Image paste ──
+function handleImagePaste(e, stateKey, previewId, thumbId) {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = ev => {
+        if (stateKey === 'chat') chatPastedImage = ev.target.result;
+        else pcpPastedImage = ev.target.result;
+        document.getElementById(thumbId).src = ev.target.result;
+        document.getElementById(previewId).classList.remove('hidden');
+      };
+      reader.readAsDataURL(item.getAsFile());
+      break;
+    }
+  }
+}
+
+document.getElementById('chat-input').addEventListener('paste', e =>
+  handleImagePaste(e, 'chat', 'chat-img-preview', 'chat-img-thumb'));
+document.getElementById('pcp-input').addEventListener('paste', e =>
+  handleImagePaste(e, 'pcp', 'pcp-img-preview', 'pcp-img-thumb'));
+
+document.getElementById('chat-img-clear').addEventListener('click', () => {
+  chatPastedImage = null;
+  document.getElementById('chat-img-preview').classList.add('hidden');
+  document.getElementById('chat-img-thumb').src = '';
+});
+document.getElementById('pcp-img-clear').addEventListener('click', () => {
+  pcpPastedImage = null;
+  document.getElementById('pcp-img-preview').classList.add('hidden');
+  document.getElementById('pcp-img-thumb').src = '';
+});
 
 // ── Close modals on backdrop click ──
 document.querySelectorAll('.modal').forEach(modal => {

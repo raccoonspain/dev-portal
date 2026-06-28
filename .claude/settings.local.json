@@ -121,7 +121,14 @@
       "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"обновлён CLAUDE.md — актуальная документация портала\")",
       "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"handoff: снимок передачи на 2026-06-27\")",
       "Bash(pm2 list *)",
-      "Bash(bash scripts/snapshot.sh \"решение: деплой Б24-приложений на свой VPS через Caddy + PM2 \\(D-007\\)\")"
+      "Bash(bash scripts/snapshot.sh \"решение: деплой Б24-приложений на свой VPS через Caddy + PM2 \\(D-007\\)\")",
+      "Bash(systemctl --user status dev-portal)",
+      "Bash(pkill -f \"node /home/deploy/dev-portal\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" http://localhost:3000/api/me)",
+      "Bash(kill -TERM 168468)",
+      "Bash(echo \"kill exit: $?\")",
+      "Bash(bash scripts/snapshot.sh \"решение: контекстный чат по проекту + вставка изображений \\(D-010\\)\")"
     ]
   }
 }
