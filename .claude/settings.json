@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/snapshot.sh \"решение: деплой Б24 через PHP 8.3-FPM + OAuth server-side \\(D-008\\)\")"
+    ]
+  }
+}
