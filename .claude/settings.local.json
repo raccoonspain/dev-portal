@@ -128,7 +128,21 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" http://localhost:3000/api/me)",
       "Bash(kill -TERM 168468)",
       "Bash(echo \"kill exit: $?\")",
-      "Bash(bash scripts/snapshot.sh \"решение: контекстный чат по проекту + вставка изображений \\(D-010\\)\")"
+      "Bash(bash scripts/snapshot.sh \"решение: контекстный чат по проекту + вставка изображений \\(D-010\\)\")",
+      "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/task-brief\" /home/deploy/dev-portal/docs/superpowers/plans/2026-06-28-server-dashboard.md 1)",
+      "Bash(sudo -S systemctl restart dev-portal)",
+      "Bash(pm2 restart *)",
+      "Bash(echo \"pm2 exit: $?\")",
+      "Bash(kill -HUP 169318)",
+      "Bash(curl -s -b /tmp/claude-1000/-home-deploy-dev-portal/ce157711-670f-4456-bb13-51c498fb6e61/scratchpad/cookie.txt http://localhost:3000/api/server/stats)",
+      "Bash(python3 -m json.tool)",
+      "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/task-brief\" /home/deploy/dev-portal/docs/superpowers/plans/2026-06-28-server-dashboard.md 2)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/js/app.js)",
+      "Bash(curl -s http://localhost:3000/css/style.css)",
+      "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/review-package\" dc90470 02be7cf)",
+      "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/review-package\" 00190dc 02be7cf)",
+      "Bash(bash scripts/snapshot.sh \"feat: дашборд ресурсов сервера\")"
     ]
   }
 }
