@@ -143,7 +143,16 @@
       "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/review-package\" dc90470 02be7cf)",
       "Bash(SKILL_DIR=\"/home/deploy/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development\" && bash \"$SKILL_DIR/scripts/review-package\" 00190dc 02be7cf)",
       "Bash(bash scripts/snapshot.sh \"feat: дашборд ресурсов сервера\")",
-      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: дашборд ресурсов сервера как вкладка dev-portal \\(D-011\\)\")"
+      "Bash(bash /home/deploy/dev-portal/scripts/snapshot.sh \"решение: дашборд ресурсов сервера как вкладка dev-portal \\(D-011\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npx playwright *)",
+      "Bash(npm list *)",
+      "Bash(sudo apt-get install -y libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libgbm1 libasound2t64)",
+      "Bash(curl -s -b /tmp/verify-cookie.txt http://localhost:3000/api/server/stats)",
+      "Bash(sudo -n apt-get install -y libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libgbm1 libasound2t64)",
+      "Bash(ldd /home/deploy/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell)",
+      "Bash(bash scripts/snapshot.sh \"feat: сортировка процессов по USER\")"
     ]
   }
 }
